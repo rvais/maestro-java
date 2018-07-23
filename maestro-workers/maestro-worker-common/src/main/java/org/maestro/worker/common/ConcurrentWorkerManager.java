@@ -190,7 +190,7 @@ public class ConcurrentWorkerManager extends MaestroWorkerManager implements Mae
         }
 
         int runningCount = workers.size();
-        final long deadLine = startWaitingWorkersEpochMillis + (runningCount * TIMEOUT_STOP_WORKER_MILLIS * 2);
+        final long deadLine = getDeadLine(startWaitingWorkersEpochMillis, runningCount);
 
         // workers are being stopped, just need to check if they have finished their jobs
         long activeThreads = runningCount;
@@ -208,6 +208,17 @@ public class ConcurrentWorkerManager extends MaestroWorkerManager implements Mae
         }
 
         return activeThreads;
+    }
+
+    private static long getDeadLine(long startWaitingWorkersEpochMillis, int runningCount) {
+        long deadLineAmount = runningCount * TIMEOUT_STOP_WORKER_MILLIS * 2;
+
+        long deadLineMax = config.getLong("worker.active.deadline.max", 55000);
+        if (deadLineAmount > deadLineMax) {
+            deadLineAmount = deadLineMax;
+        }
+
+        return startWaitingWorkersEpochMillis + deadLineAmount;
     }
 
     private static void finishWorkers(final WorkerRuntimeInfo workerRuntimeInfo) {
